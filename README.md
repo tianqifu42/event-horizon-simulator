@@ -1,4 +1,4 @@
-https://tianqifu42.github.io/event-horizon-simulator/：
+https://tianqifu42.github.io/event-horizon-simulator/
 <img width="1070" height="587" alt="image" src="https://github.com/user-attachments/assets/5e0cd3cb-d9f9-4154-9a5e-4221bce95f68" />
                            
 
