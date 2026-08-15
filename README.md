@@ -1,5 +1,6 @@
+https://tianqifu42.github.io/event-horizon-simulator/：
 <img width="1070" height="587" alt="image" src="https://github.com/user-attachments/assets/5e0cd3cb-d9f9-4154-9a5e-4221bce95f68" />
-                              https://tianqifu42.github.io/event-horizon-simulator/
+                           
 
 🌌 What was Created & Delivered
 The simulation represents a non-rotating Schwarzschild Black Hole incorporating physical relativistic mechanics and high-performance interactive rendering with 3 robust core files:
