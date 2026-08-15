@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Horizon: Relativistic Black Hole Simulator & Sandbox</title>
+  <!-- Google Fonts: Space Grotesk and JetBrains Mono for a highly technical sci-fi look -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource-variable/space-grotesk@5.2.10/index.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.2.8/index.css" rel="stylesheet">
+  <style>
+    :root {
+      --font-display: 'Space Grotesk Variable', sans-serif;
+      --font-body: 'Space Grotesk Variable', sans-serif;
+      --font-mono: 'JetBrains Mono Variable', monospace;
+      
+      --color-bg: #03030c;
+      --color-panel: rgba(10, 10, 25, 0.75);
+      --color-panel-border: rgba(120, 180, 255, 0.2);
+      --color-primary: #38bdf8;
+      --color-accent: #f43f5e;
+      --color-green: #10b981;
+      --color-yellow: #fbbf24;
+      --color-text: #f1f5f9;
+      --color-text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+    }
+
+    /* main app layout */
+    #app-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: block;
+    }
+
+    /* Glassmorphism panels */
+    .glass-panel {
+      background: var(--color-panel);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--color-panel-border);
+      border-radius: 12px;
+      z-index: 10;
+      pointer-events: auto;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    }
+
+    /* HUD Left: Controls & Sandboxing */
+    #control-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      bottom: 20px;
+      width: 320px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+    }
+
+    /* HUD Right: Telemetry & Physical metrics */
+    #telemetry-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 300px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    /* Spaceship piloting help overlay */
+    #pilot-panel {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 300px;
+      padding: 15px;
+      display: none; /* revealed only when spaceship is active */
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      background: linear-gradient(135deg, #fff 30%, var(--color-primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      color: var(--color-primary);
+      border-bottom: 1px solid var(--color-panel-border);
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      line-height: 1.3;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      font-family: var(--font-mono);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .btn {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: var(--color-text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: var(--color-primary);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-accent {
+      background: rgba(244, 63, 94, 0.1);
+      border-color: rgba(244, 63, 94, 0.4);
+    }
+
+    .btn-accent:hover {
+      background: rgba(244, 63, 94, 0.25);
+      border-color: var(--color-accent);
+    }
+
+    .btn-active {
+      background: var(--color-primary) !important;
+      color: #000 !important;
+      border-color: var(--color-primary) !important;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    /* Sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Checkboxes & Switches */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .switch-label {
+      font-size: 0.85rem;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 18px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255,255,255,0.15);
+      transition: .3s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 12px;
+      width: 12px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--color-primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    /* Telemetry Tele-stats style */
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 4px;
+    }
+
+    .metric-val {
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+
+    .stat-alert {
+      color: var(--color-accent) !important;
+      animation: pulse-red 1s infinite alternate;
+    }
+
+    @keyframes pulse-red {
+      0% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
+    /* Tooltips / Interactive overlays */
+    #top-banner {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    #top-banner h3 {
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+    }
+
+    /* Custom Scrollbar for side panel */
+    #control-panel::-webkit-scrollbar {
+      width: 4px;
+    }
+    #control-panel::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #control-panel::-webkit-scrollbar-thumb {
+      background: var(--color-panel-border);
+      border-radius: 2px;
+    }
+
+    /* Quick status indicator */
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-green);
+      box-shadow: 0 0 8px var(--color-green);
+    }
+
+    .status-dot.danger {
+      background: var(--color-accent);
+      box-shadow: 0 0 8px var(--color-accent);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Background Canvas where Black Hole simulation renders -->
+    <canvas id="sim-canvas"></canvas>
+
+    <!-- Top info bar -->
+    <div id="top-banner">
+      <h3>Event Horizon Sandbox</h3>
+      <span class="subtitle" style="font-family: var(--font-mono); color: var(--color-primary);">Schwarzschild Metric Realtime Raytracer</span>
+    </div>
+
+    <!-- Left Controls Panel -->
+    <div id="control-panel" class="glass-panel">
+      <div>
+        <h1>Event Horizon</h1>
+        <p class="subtitle">A relativistic gravitational physics playground exploring Schwarzschild space-time singularities.</p>
+      </div>
+
+      <!-- Section: Presets & Events -->
+      <div class="control-group">
+        <h2>Cosmic Events</h2>
+        <div class="btn-grid">
+          <button class="btn" id="btn-supernova">Supernova</button>
+          <button class="btn" id="btn-merger">BH Merger</button>
+        </div>
+      </div>
+
+      <!-- Section: Sandbox Spawn Controls -->
+      <div class="control-group">
+        <h2>Interactive Action</h2>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button class="btn btn-active" id="act-pull">Gravity Pull (Drag Mouse)</button>
+          <button class="btn" id="act-dust">Spawn Dust Nebula (Click)</button>
+          <button class="btn" id="act-star">Launch Orbiting Star (Click)</button>
+          <button class="btn btn-accent" id="act-pilot">Pilot Spaceship</button>
+        </div>
+      </div>
+
+      <!-- Section: Simulator Parameters -->
+      <div class="control-group">
+        <h2>Simulation Sliders</h2>
+        
+        <div>
+          <label><span>Singularity Mass</span><span id="val-mass">800k M☉</span></label>
+          <input type="range" id="slide-mass" min="200000" max="2500000" step="50000" value="800000">
+        </div>
+
+        <div>
+          <label><span>Simulation Speed</span><span id="val-speed">1.0x</span></label>
+          <input type="range" id="slide-speed" min="0.1" max="2.5" step="0.1" value="1.0">
+        </div>
+      </div>
+
+      <!-- Section: Visual Overlays -->
+      <div class="control-group">
+        <h2>Optics & Overlays</h2>
+        
+        <label class="switch-container">
+          <span class="switch-label">Lensing Grid Deformation</span>
+          <span class="switch">
+            <input type="checkbox" id="chk-grid" checked>
+            <span class="slider"></span>
+          </span>
+        </label>
+
+        <label class="switch-container">
+          <span class="switch-label">Photon Sphere (1.5 Rs)</span>
+          <span class="switch">
+            <input type="checkbox" id="chk-photon" checked>
+            <span class="slider"></span>
+          </span>
+        </label>
+
+        <label class="switch-container">
+          <span class="switch-label">Innermost Circular Orbit</span>
+          <span class="switch">
+            <input type="checkbox" id="chk-isco" checked>
+            <span class="slider"></span>
+          </span>
+        </label>
+
+        <label class="switch-container">
+          <span class="switch-label">Trace Photon Light Beams</span>
+          <span class="switch">
+            <input type="checkbox" id="chk-ray">
+            <span class="slider"></span>
+          </span>
+        </label>
+      </div>
+
+      <!-- System Reset buttons -->
+      <div class="btn-grid" style="margin-top: auto; padding-top: 10px;">
+        <button class="btn" id="btn-pause">Pause</button>
+        <button class="btn btn-accent" id="btn-clear">Reset All</button>
+      </div>
+    </div>
+
+    <!-- Right Telemetry Panel -->
+    <div id="telemetry-panel" class="glass-panel">
+      <h2>Telemetry HUD <span class="status-dot" id="status-hud"></span></h2>
+
+      <div class="metric-row">
+        <span>Schwarzschild Radius (Rs):</span>
+        <span class="metric-val" id="tele-rs">148 px</span>
+      </div>
+
+      <div class="metric-row">
+        <span>Innermost Stable Orbit:</span>
+        <span class="metric-val" id="tele-isco">444 px</span>
+      </div>
+
+      <div class="metric-row">
+        <span>Hawking Temp:</span>
+        <span class="metric-val" id="tele-hawking">6.2e-14 K</span>
+      </div>
+
+      <div class="metric-row">
+        <span>Energy Loss (Hawking):</span>
+        <span class="metric-val" id="tele-luminosity">1.8e-54 W</span>
+      </div>
+
+      <div class="metric-row">
+        <span>Total Accreted Mass:</span>
+        <span class="metric-val" id="tele-accretion">0 M☉</span>
+      </div>
+
+      <div class="metric-row">
+        <span>Nebula Density:</span>
+        <span class="metric-val" id="tele-nebula">400 pts</span>
+      </div>
+    </div>
+
+    <!-- Spacecraft Piloting Overlay -->
+    <div id="pilot-panel" class="glass-panel">
+      <h2>Spaceship Controls <span class="status-dot danger" id="status-ship"></span></h2>
+      <p class="subtitle" style="margin-bottom: 10px;">Warning: Gravitational tidal forces will spaghettify ship below 4x Rs radius!</p>
+      
+      <div class="metric-row">
+        <span>Structural Integrity:</span>
+        <span class="metric-val" id="ship-health">100%</span>
+      </div>
+      <div class="metric-row">
+        <span>Quantum Fuel:</span>
+        <span class="metric-val" id="ship-fuel">100%</span>
+      </div>
+      <div class="metric-row">
+        <span>Velocity:</span>
+        <span class="metric-val" id="ship-velocity">0 km/s</span>
+      </div>
+
+      <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 6px; font-family: var(--font-mono); line-height: 1.4;">
+        CONTROLS:<br>
+        • W / ↑ : Forward Thruster<br>
+        • A/D or ←/→ : Steer Heading<br>
+        • Keep orbital speed to stay safe!
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Simulator Script modules -->
+  <script type="module">
+    import { Engine } from './engine.js';
+
+    // Set up Canvas dimensions
+    const canvas = document.getElementById('sim-canvas');
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initialize Simulator Engine
+    const engine = new Engine(canvas);
+
+    // Dynamic UI Updates & Loop
+    let lastTime = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.03, (now - lastTime) / 1000); // Caps dt lag spikes
+      lastTime = now;
+
+      engine.update(dt);
+      engine.draw();
+
+      // Update Telemetry Panel
+      document.getElementById('tele-rs').innerText = `${Math.round(engine.bh.Rs)} px`;
+      document.getElementById('tele-isco').innerText = `${Math.round(engine.bh.r_isco)} px`;
+      document.getElementById('tele-accretion').innerText = `${Math.round(engine.bh.totalAccreted)} M☉`;
+      document.getElementById('tele-nebula').innerText = `${engine.particles.length} particles`;
+      document.getElementById('tele-hawking').innerText = `${engine.bh.hawkingTempK.toExponential(2)} K`;
+      document.getElementById('tele-luminosity').innerText = `${engine.bh.hawkingLuminosity.toExponential(2)} W`;
+
+      // Spaceship HUD
+      if (engine.spaceship) {
+        document.getElementById('pilot-panel').style.display = 'flex';
+        const ship = engine.spaceship;
+        const healthEl = document.getElementById('ship-health');
+        const fuelEl = document.getElementById('ship-fuel');
+
+        healthEl.innerText = `${Math.max(0, Math.round(ship.health))}%`;
+        fuelEl.innerText = `${Math.max(0, Math.round(ship.fuel))}%`;
+        
+        // Relativistic Speed Display
+        const speedVal = Math.sqrt(ship.vx*ship.vx + ship.vy*ship.vy);
+        const relSpeedPct = (speedVal / engine.bh.c_sim * 100).toFixed(1);
+        document.getElementById('ship-velocity').innerText = `${relSpeedPct}% c`;
+
+        if (ship.dead) {
+          document.getElementById('status-ship').className = 'status-dot danger';
+          healthEl.classList.add('stat-alert');
+        } else {
+          document.getElementById('status-ship').className = 'status-dot';
+          healthEl.classList.remove('stat-alert');
+        }
+      } else {
+        document.getElementById('pilot-panel').style.display = 'none';
+      }
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // Keyboard controls for Spacecraft Piloting
+    window.addEventListener('keydown', (e) => {
+      engine.keys[e.key] = true;
+    });
+    window.addEventListener('keyup', (e) => {
+      engine.keys[e.key] = false;
+    });
+
+    // Handle mouse click/drag sandboxing actions
+    canvas.addEventListener('mousedown', (e) => {
+      engine.mouse.isDown = true;
+      updateMousePos(e);
+      
+      if (engine.mouse.action !== 'pull') {
+        engine.handleMouseAction(engine.mouse.action, engine.mouse.x, engine.mouse.y);
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      updateMousePos(e);
+    });
+
+    window.addEventListener('mouseup', () => {
+      engine.mouse.isDown = false;
+    });
+
+    function updateMousePos(e) {
+      const rect = canvas.getBoundingClientRect();
+      engine.mouse.x = e.clientX - rect.left;
+      engine.mouse.y = e.clientY - rect.top;
+    }
+
+    // Wiring up Controls UI
+    const actionBtns = [
+      { id: 'act-pull', action: 'pull' },
+      { id: 'act-dust', action: 'spawn_dust' },
+      { id: 'act-star', action: 'spawn_star' },
+      { id: 'act-pilot', action: 'pilot' }
+    ];
+
+    actionBtns.forEach(b => {
+      document.getElementById(b.id).addEventListener('click', () => {
+        actionBtns.forEach(btn => document.getElementById(b.id === btn.id ? btn.id : btn.id).classList.remove('btn-active'));
+        document.getElementById(b.id).classList.add('btn-active');
+        engine.mouse.action = b.action;
+
+        if (b.action === 'pilot') {
+          engine.spawnSpaceship();
+        }
+      });
+    });
+
+    // Presets & Buttons
+    document.getElementById('btn-supernova').addEventListener('click', () => {
+      engine.triggerSupernova();
+    });
+
+    document.getElementById('btn-merger').addEventListener('click', () => {
+      engine.triggerMerger();
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      engine.clearAll();
+      engine.init();
+    });
+
+    const btnPause = document.getElementById('btn-pause');
+    btnPause.addEventListener('click', () => {
+      engine.isPaused = !engine.isPaused;
+      btnPause.innerText = engine.isPaused ? 'Resume' : 'Pause';
+      if (engine.isPaused) {
+        btnPause.classList.add('btn-active');
+      } else {
+        btnPause.classList.remove('btn-active');
+      }
+    });
+
+    // Sliders
+    const slideMass = document.getElementById('slide-mass');
+    slideMass.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      engine.bh.mass = val;
+      engine.bh.grow(0); // Updates related physical values/radii instantly
+      document.getElementById('val-mass').innerText = `${(val / 1000).toFixed(0)}k M☉`;
+    });
+
+    const slideSpeed = document.getElementById('slide-speed');
+    slideSpeed.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      engine.timeScale = val;
+      document.getElementById('val-speed').innerText = `${val.toFixed(1)}x`;
+    });
+
+    // Overlays
+    document.getElementById('chk-grid').addEventListener('change', (e) => {
+      // Toggle custom grid deformation lines
+      const active = e.target.checked;
+      engine._drawLensingGrid = active ? Engine.prototype._drawLensingGrid : () => {};
+    });
+
+    document.getElementById('chk-photon').addEventListener('change', (e) => {
+      engine.showPhotonSphere = e.target.checked;
+    });
+
+    document.getElementById('chk-isco').addEventListener('change', (e) => {
+      engine.showISCO = e.target.checked;
+    });
+
+    document.getElementById('chk-ray').addEventListener('change', (e) => {
+      engine.showLensingRay = e.target.checked;
+    });
+
+  </script>
+</body>
+</html>
